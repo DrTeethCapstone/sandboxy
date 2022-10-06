@@ -9,18 +9,16 @@ const nouns = ["accelerator", "accordion", "account", "accountant", "acknowledgm
 function selector (arr){
   let newArr = []
   for(let i = 0;i<10;i++){
-    newArr.push(arr[Math.floor(Math.random()*2330)])
+    newArr.push({name:arr[Math.floor(Math.random()*2330)]})
   }
-  
   return newArr
 }
   const [randomWords, setRandomWords]=useState([...selector(nouns)])
+  const [sorted, setSorted] = useState([...selector(nouns)])
   const [userInput, setUserInput] = useState('')
   const [scoresOut, setScoresOut] = useState([])
-  const [inputObj, setInputObj] = useState({})
-  const [targetWord, setTargetWord] = useState(randomWords[0])
-  const [sorted, setSorted] = useState([])
-  const [loading,setLoading] =useState(false)
+  // const [targetWord, setTargetWord] = useState(randomWords[0])
+  
   const [gameScore, setGameScore]=useState(0)
 
 
@@ -33,35 +31,23 @@ function selector (arr){
       };
       embeddings = model.embed(input);
     })
-    setInterval(()=>tick(),8000)
+    // setInterval(()=>{
+    // tick(sorted)  
+    // setSorted([...sorted])
+
+    // },8000)
   }
   , [])
 
-const nextTurn = async (event)=>{
 
-  let newArr = sorted.slice(0,sorted.length -4)
-  setSorted([...newArr])
-
-  // for(let i =0;i<4;i++){
-  // setTimeout(()=>{
-  //   newArr.unshift({name:nouns[Math.floor(Math.random()*1000)], score:0})
-  //   setSorted([...newArr])
-  // },2000)}
-
-  setGameScore(gameScore+50)
+const handleChange = (event) => {
+    setUserInput(event.target.value)
 }
 
-
-  const handleChange = (event) => {
-    setUserInput(event.target.value)
-  }
-
-  const handleSubmit = (event) => {
+const handleSubmit = async (event) => {
     event.preventDefault()
-
-    use.loadQnA().then(model => {
-      let words = dummy.map(elem=>elem.name)
- 
+    await use.loadQnA().then(model => {
+      let words = sorted.map(elem=>elem.name)
       const input = {
         queries: [userInput],
         responses: [userInput, ...words]
@@ -70,42 +56,57 @@ const nextTurn = async (event)=>{
       const scores = tf.matMul(embeddings['queryEmbedding'],
         embeddings['responseEmbedding'], false, true).dataSync().filter((elem,idx)=>idx>0);
       setScoresOut(scores)
-    
-    })
-  }
-  let dummy = sorted.length ? sorted: randomWords
 
-  dummy = sorted.length ? sorted.map((ele,idx)=>{
-    let obj = {name:ele.name, score:scoresOut[idx]}
-    return obj
-  })
-  : dummy.map((ele,idx)=>{
-    let obj = {name:ele, score:scoresOut[idx]}
-    return obj
-   })
+      let newArr = sorted.map((ele,idx)=>{
+            let obj = {name:ele.name, score:scoresOut[idx]}
+            return obj
+          })
+      setSorted([...newArr])
+    })
+}
+
+// let dummy = sorted.length ? sorted : null
+
+// dummy = sorted.length ? sorted.map((ele,idx)=>{
+//     let obj = {name:ele.name, score:scoresOut[idx]}
+//     return obj
+//   })
+//   : null
+
+function tick(sorted){
+  sorted.unshift({name:nouns[Math.floor(Math.random()*1000)]}) 
+}
+
+console.log(sorted)
 
 const handleSort = (event)=>{
   event.preventDefault()
-
-  let dummySort = dummy.sort((a,b)=>a.score-b.score )
+  let dummySort = sorted.sort((a,b)=>a.score-b.score )
   let scores = scoresOut.sort((a,b)=>a-b)
   setSorted(dummySort)
   setScoresOut(scores)
 }
 
-function tick(){
-  console.log(sorted)
-  sorted.unshift({name:nouns[Math.floor(Math.random()*1000)], score:0})
-  setSorted([...sorted])
+
+const nextTurn = (event)=>{
+  event.preventDefault()
+  let newArr = sorted.slice(0,sorted.length -4)
+  setSorted([...newArr])
+  // for(let i =0;i<4;i++){
+  // setTimeout(()=>{
+  //   newArr.unshift({name:nouns[Math.floor(Math.random()*1000)], score:0})
+  //   setSorted([...newArr])
+  // },2000)}
+  setGameScore(gameScore+50)
 }
 
 
   return (
     <div className="App">
       <div>{gameScore>0 ? `Score:${gameScore}` : null}</div>
-        {dummy.map((ele) =>
-        <p>{ele.name}</p>
-      )}
+        {sorted.length ? sorted.map((ele) =>
+        <p>{ele.name} = {ele.score}</p>
+      ):null}
       <form onSubmit={handleSubmit}>
         <input onChange={handleChange} value={userInput} />
         <button>check</button>
